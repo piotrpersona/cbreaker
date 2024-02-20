@@ -101,25 +101,26 @@ linters:
     - wrapcheck
     - wsl
     - zerologlint
-  presets:
-    - bugs
-    - comment
-    - complexity
-    - error
-    - format
-    - import
-    - metalinter
-    - module
-    - performance
-    - sql
-    - style
-    - test
-    - unused
-  issues:
-    exclude-rules:
-      - path: _test.go
-        linters:
-          - funlen
   # Enable only fast linters from enabled linters set (first run won't be fast)
   # Default: false
   fast: true
+  linters-settings:
+    depguard:
+      rules:
+        main:
+          files:
+          - $all
+          - "!$test"
+          allow:
+          - $gostd
+          deny:
+            reflect: Please don't use reflect package
+        test:
+          files:
+          - $test
+          allow:
+          - $gostd
+          - github.com/stretchr/testify
+          - github.com/piotrpersona/cbreaker
+          deny:
+            reflect: Please don't use reflect package
