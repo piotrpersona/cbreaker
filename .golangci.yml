@@ -10,7 +10,6 @@ linters:
     - contextcheck
     - cyclop
     - decorder
-    - depguard
     - dupl
     - dupword
     - durationcheck
@@ -124,24 +123,3 @@ linters:
   # Enable only fast linters from enabled linters set (first run won't be fast)
   # Default: false
   fast: true
-  linters-settings:
-    depguard:
-      rules:
-        main:
-          files:
-          - $all
-          - "!$test"
-          allow:
-          - $gostd
-          - github.com/piotrpersona/cbreaker
-          deny:
-            reflect: Please don't use reflect package
-        test:
-          files:
-          - $test
-          allow:
-          - $gostd
-          - github.com/stretchr/testify
-          - github.com/piotrpersona/cbreaker
-          deny:
-            reflect: Please don't use reflect package
