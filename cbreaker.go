@@ -34,7 +34,7 @@ func (s State) String() string {
 
 // StateChangeCallback is a callback to acknowledge state transition of a circuit.
 // For example it can be used for logging.
-type StateChangeCallback func(current, new State)
+type StateChangeCallback func(current, newState State)
 
 // Breaker is a default circuit breaker implementation.
 type Breaker[T any] struct {
@@ -105,15 +105,21 @@ func NewBreaker[T any](opts ...Option) *Breaker[T] {
 	for _, opt := range opts {
 		opt(cfg)
 	}
+
+	var result T
+
 	return &Breaker[T]{
 		state:               1,
 		threshold:           cfg.threshold,
+		openResult:          result,
 		openErr:             nil,
+		openTime:            time.Time{},
 		currentTry:          0,
 		openTimeout:         cfg.openTimeout,
 		currentRetry:        0,
 		retryThreshold:      cfg.retryThreshold,
 		stateChangeCallback: cfg.stateChangeCallback,
+		mu:                  sync.RWMutex{},
 	}
 }
 
@@ -128,30 +134,40 @@ func (b *Breaker[T]) Try(callback func() (T, error)) (T, error) {
 		if err == nil {
 			return result, nil
 		}
+
 		b.try()
+
 		if b.shouldOpen() {
 			b.openCircuit(result, err)
 		}
+
 		return result, err
 	case StateOpen:
 		if b.shouldHalfOpen() {
 			b.halfOpenCircuit()
 		}
+
 		res, err := b.getPreviousResult()
+
 		return res, err
 	case StateHalfOpen:
 		result, err := callback()
 		if err == nil {
 			b.closeCircuit()
+
 			return result, nil
 		}
+
 		b.retry()
+
 		if b.shouldOpen() {
 			b.openCircuit(result, err)
 		}
+
 		return result, err
 	default:
 		var result T
+
 		return result, nil
 	}
 }
@@ -204,6 +220,7 @@ func (b *Breaker[T]) getPreviousResult() (T, error) {
 	b.mu.RLock()
 	res, err := b.openResult, b.openErr
 	b.mu.RUnlock()
+
 	return res, err
 }
 
@@ -243,6 +260,7 @@ func (b *NoRetBreaker) Try(callback func() error) error {
 	_, err := b.breaker.Try(func() (struct{}, error) {
 		return struct{}{}, callback()
 	})
+
 	return err
 }
 
