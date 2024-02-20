@@ -41,21 +41,26 @@ func TestCbreaker(t *testing.T) {
 			require.Error(t, err)
 		}
 		require.Equal(t, cbreaker.StateOpen, breaker.State())
+		require.True(t, cbreaker.IsOpenCircuitError(err))
 
 		time.Sleep(time.Second * 2)
 
+		innerErr := errors.New("error")
 		_, err = breaker.Try(func() (int, error) {
-			return 0, errors.New("error")
+			return 0, innerErr
 		})
 		require.Error(t, err)
 		require.Equal(t, cbreaker.StateHalfOpen, breaker.State())
+		require.Equal(t, innerErr, errors.Unwrap(err))
 
 		_, err = breaker.Try(func() (int, error) {
 			return 0, errors.New("error")
 		})
 		require.Error(t, err)
 		require.Equal(t, cbreaker.StateOpen, breaker.State())
+		require.True(t, cbreaker.IsOpenCircuitError(err))
 		time.Sleep(time.Second * 2)
+		require.Equal(t, "circuit is open, err: error", err.Error())
 
 		_, _ = breaker.Try(func() (int, error) {
 			return 0, nil

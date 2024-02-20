@@ -1,6 +1,8 @@
 package cbreaker
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -30,6 +32,40 @@ func (s State) String() string {
 	default:
 		return ""
 	}
+}
+
+// OpenCircuitError indicates that the circuit is open.
+type OpenCircuitError struct {
+	err error
+}
+
+func newOpenCircuitError(err error) *OpenCircuitError {
+	return &OpenCircuitError{
+		err: err,
+	}
+}
+
+// IsOpenCircuitError returns whether an error is OpenCircuitError.
+func IsOpenCircuitError(err error) bool {
+	target := new(OpenCircuitError)
+
+	return errors.Is(err, target)
+}
+
+func (o *OpenCircuitError) Is(err error) bool {
+	_, ok := err.(*OpenCircuitError)
+
+	return ok
+}
+
+// Err returns inner error.
+func (o *OpenCircuitError) Unwrap() error {
+	return o.err
+}
+
+// Error returns error representation.
+func (o *OpenCircuitError) Error() string {
+	return fmt.Sprintf("circuit is open, err: %v", o.err)
 }
 
 // StateChangeCallback is a callback to acknowledge state transition of a circuit.
@@ -139,6 +175,8 @@ func (b *Breaker[T]) Try(callback func() (T, error)) (T, error) {
 
 		if b.shouldOpen() {
 			b.openCircuit(result, err)
+
+			return result, newOpenCircuitError(err)
 		}
 
 		return result, err
@@ -149,7 +187,7 @@ func (b *Breaker[T]) Try(callback func() (T, error)) (T, error) {
 
 		res, err := b.getPreviousResult()
 
-		return res, err
+		return res, newOpenCircuitError(err)
 	case StateHalfOpen:
 		result, err := callback()
 		if err == nil {
@@ -162,6 +200,8 @@ func (b *Breaker[T]) Try(callback func() (T, error)) (T, error) {
 
 		if b.shouldOpen() {
 			b.openCircuit(result, err)
+
+			return result, newOpenCircuitError(err)
 		}
 
 		return result, err
