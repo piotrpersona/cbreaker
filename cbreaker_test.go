@@ -58,7 +58,7 @@ func TestCbreaker(t *testing.T) {
 		require.Equal(t, cb.State(), cbreaker.StateOpen)
 		time.Sleep(time.Second * 2)
 
-		_, err = cb.Try(func() (int, error) {
+		_, _ = cb.Try(func() (int, error) {
 			return 0, nil
 		})
 		_, err = cb.Try(func() (int, error) {
