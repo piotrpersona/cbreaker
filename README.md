@@ -33,3 +33,23 @@ err := cb.Try(func() error {
     return nil
 })
 ```
+
+## Configure
+
+> Note: Circuit breaker object won't automatically retry in half-open state.
+
+```go
+breaker := cbreaker.NewBreaker[int](
+    // sets thershold after which the circuit becomes open
+    cbreaker.WithThreshold(3),
+    // sets timeout after which the circuit become half-open
+    cbreaker.WithOpenTimeout(time.Second),
+    // sets maximum number of retries in half-open state
+    cbreaker.WithRetryThreshold(1),
+    // registers stateChangeCallback
+    cbreaker.WithStateChangeCallback(func(current, newState cbreaker.State) {
+        log.Printf("state transition: %s -> %s", current, newState)
+    }),
+)
+```
+
