@@ -116,6 +116,11 @@ linters:
     - style
     - test
     - unused
+  issues:
+    exclude-rules:
+      - path: _test.go
+        linters:
+          - funlen
   # Enable only fast linters from enabled linters set (first run won't be fast)
   # Default: false
   fast: true
